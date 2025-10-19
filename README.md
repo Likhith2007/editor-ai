@@ -13,8 +13,9 @@ A powerful, context-aware code editor with integrated AI assistance powered by O
 - TypeScript
 - Python
 - Java
-- C#
 - Go
+-HTML
+-CSS
 
 ### 🎯 Key Capabilities
 - Real-time code execution
@@ -154,5 +155,3 @@ MIT License
 - Supabase
 
 ---
-
-**Built with ❤️ for developers**
