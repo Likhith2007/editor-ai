@@ -1,22 +1,50 @@
 import { useState, useEffect } from 'react';
-import { Code, BarChart3, Settings as SettingsIcon } from 'lucide-react';
+import { Code, BarChart3, Settings as SettingsIcon, Trophy, BookOpen, User, Target } from 'lucide-react';
 import CodeEditor from './components/CodeEditor';
 import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
+import LearningDashboard from './components/LearningDashboard';
+import Leaderboard from './components/Leaderboard';
+import LearningLibrary from './components/LearningLibrary';
+import UserProfile from './components/UserProfile';
+import ChallengeView from './components/ChallengeView';
 import { db } from './lib/database';
 import { isMock } from './lib/supabase';
+import { gamificationService } from './lib/gamification';
 
-type View = 'editor' | 'dashboard' | 'settings';
+type View = 'editor' | 'dashboard' | 'settings' | 'learn' | 'leaderboard' | 'library' | 'profile' | 'challenge';
 
 function App() {
-  const [currentView, setCurrentView] = useState<View>('editor');
+  const [currentView, setCurrentView] = useState<View>('learn');
   const [sessionId, setSessionId] = useState<string>('');
   const [language, setLanguage] = useState('javascript');
   const [code, setCode] = useState<string>('// Start typing your code here...\n');
+  const [userId, setUserId] = useState<string>('demo-user-123');
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string>('');
 
   useEffect(() => {
     initializeSession();
+    initializeUser();
   }, []);
+
+  async function initializeUser() {
+    try {
+      let profile = await gamificationService.getProfile(userId);
+      if (!profile) {
+        profile = await gamificationService.createProfile(userId, 'demo_user', {
+          full_name: 'Demo User',
+          bio: 'Learning to code with AI assistance',
+        });
+      }
+
+      let progress = await gamificationService.getProgress(userId);
+      if (!progress) {
+        await gamificationService.initializeProgress(userId);
+      }
+    } catch (error) {
+      console.error('Error initializing user:', error);
+    }
+  }
 
   // Save code before switching views
   useEffect(() => {
@@ -121,6 +149,39 @@ function App() {
 
           <nav className="flex gap-2">
             <button
+              onClick={() => setCurrentView('learn')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentView === 'learn'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <Target className="w-4 h-4" />
+              Learn
+            </button>
+            <button
+              onClick={() => setCurrentView('library')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentView === 'library'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              Library
+            </button>
+            <button
+              onClick={() => setCurrentView('leaderboard')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentView === 'leaderboard'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <Trophy className="w-4 h-4" />
+              Leaderboard
+            </button>
+            <button
               onClick={() => setCurrentView('editor')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                 currentView === 'editor'
@@ -132,6 +193,17 @@ function App() {
               Editor
             </button>
             <button
+              onClick={() => setCurrentView('profile')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentView === 'profile'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              Profile
+            </button>
+            <button
               onClick={() => setCurrentView('dashboard')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                 currentView === 'dashboard'
@@ -140,7 +212,7 @@ function App() {
               }`}
             >
               <BarChart3 className="w-4 h-4" />
-              Dashboard
+              Analytics
             </button>
             <button
               onClick={() => setCurrentView('settings')}
@@ -158,6 +230,17 @@ function App() {
       </header>
 
       <main className="flex-1 overflow-hidden">
+        {currentView === 'learn' && <LearningDashboard userId={userId} />}
+        {currentView === 'library' && (
+          <LearningLibrary
+            userId={userId}
+            onSelectLesson={(lessonId) => {
+              setSelectedChallengeId(lessonId);
+              setCurrentView('challenge');
+            }}
+          />
+        )}
+        {currentView === 'leaderboard' && <Leaderboard />}
         {currentView === 'editor' && sessionId && (
           <CodeEditor
             sessionId={sessionId}
@@ -165,6 +248,14 @@ function App() {
             code={code}
             onCodeChange={handleCodeChange}
             onLanguageChange={handleLanguageChange}
+          />
+        )}
+        {currentView === 'profile' && <UserProfile userId={userId} />}
+        {currentView === 'challenge' && selectedChallengeId && (
+          <ChallengeView
+            challengeId={selectedChallengeId}
+            userId={userId}
+            onComplete={() => setCurrentView('learn')}
           />
         )}
         {currentView === 'dashboard' && <Dashboard />}
